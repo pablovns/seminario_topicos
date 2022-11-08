@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.linear_model import LinearRegression #Regressão linear
+from sklearn import tree
 
 
 trad = {
@@ -25,22 +25,29 @@ st.title('Seminário de Tópicos Especiais em Informática')
 df = pd.read_csv("houses_to_rent_v2.csv")
 df.rename(columns=trad, inplace=True) # traduz os nomes das colunas para melhor visualização
 st.dataframe(df.head(3))
-opcoes = df.drop(['Permite animais', 'Mobiliado', 'Cidade'], axis=1).columns
-aux = st.multiselect('Escolha o (s) parâmetro (s) de entrada para a predição', options=opcoes)
+df.drop(['Taxa de condomínio (R$)', 'Total (R$)', 'IPTU (R$)', 'Seguro contra incêndio (R$)'], axis=1, inplace=True)
+aux = st.multiselect('Escolha o (s) parâmetro (s) de entrada para a predição', options=df.drop(['Valor do aluguel (R$)'], axis=1).columns)
 
-# predição
-X = df[aux].values # variável independente
-Y = df['Valor do aluguel (R$)'].values # variavel dependente
+# Variáveis
+alvo = 'Valor do aluguel (R$)' #variável alvo
+quant = [] #Variáveis quantitativas
+quali = [] #Variáveis qualitativas
+vals = {} # Valores para a predição
 
-rl = LinearRegression()
-rl.fit(X, Y)
+base = df[aux].join(df['Valor do aluguel (R$)'])
 
-x = [] # valor para a variável independente
 st.subheader('Insira os dados abaixo')
 for elem in aux:
-    num = st.number_input(f'{elem}', min_value=0)
-    x.append([num])
+    if df[elem].dtype != 'object': # checa se a coluna é de dados númericos (quantitativos)
+        quant.append(elem)
+        vals[elem] = st.number_input(elem, min_value=0)
+    else:
+        quali.append(elem)
+        vals[elem] = st.radio(elem, options=df[elem].unique())
 
-x_arr = np.array(x).reshape(-1, len(aux))
-y_pred = rl.predict(x_arr)
-st.text(f"O valor estimado do aluguel é de: {float(y_pred[0])}")
+# Árvore
+arv = tree.DecisionTreeClassifier() #árvore de decisão
+arv.fit(pd.concat([pd.get_dummies(base[quali]), base[quant]], axis=1), base[alvo]) #cria a árvore
+
+res = arv.predict([vals['Valor do aluguel (R$)']])
+res
