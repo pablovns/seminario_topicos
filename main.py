@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn import tree
+from sklearn.linear_model import LinearRegression # Regressão linear
 
 
 trad = {
@@ -24,30 +24,35 @@ trad = {
 st.title('Seminário de Tópicos Especiais em Informática') 
 df = pd.read_csv("houses_to_rent_v2.csv")
 df.rename(columns=trad, inplace=True) # traduz os nomes das colunas para melhor visualização
-st.dataframe(df.head(3))
-df.drop(['Taxa de condomínio (R$)', 'Total (R$)', 'IPTU (R$)', 'Seguro contra incêndio (R$)'], axis=1, inplace=True)
-aux = st.multiselect('Escolha o (s) parâmetro (s) de entrada para a predição', options=df.drop(['Valor do aluguel (R$)'], axis=1).columns)
+st.dataframe(df.head(5))
 
-# Variáveis
-alvo = 'Valor do aluguel (R$)' #variável alvo
-quant = [] #Variáveis quantitativas
-quali = [] #Variáveis qualitativas
-vals = {} # Valores para a predição
+ALVO = df['Valor do aluguel (R$)']
+# verificar as correlações entre as variáveis aqui
 
-base = df[aux].join(df['Valor do aluguel (R$)'])
+st.header("Predição utilizando Regressão Linear Múltipla")
+colunas_drop = ['Cidade', 'Permite animais', 'Mobiliado', 'Taxa de condomínio (R$)', 'Valor do aluguel (R$)', 'IPTU (R$)', 'Seguro contra incêndio (R$)', 'Total (R$)']
+opcoes = list(df.drop(colunas_drop, axis=1).columns)
 
-st.subheader('Insira os dados abaixo')
-for elem in aux:
-    if df[elem].dtype != 'object': # checa se a coluna é de dados númericos (quantitativos)
-        quant.append(elem)
-        vals[elem] = st.number_input(elem, min_value=0)
-    else:
-        quali.append(elem)
-        vals[elem] = st.radio(elem, options=df[elem].unique())
+container = st.container()
+all = st.checkbox('Selecionar todos')
+str_input = 'Escolha o(s) parâmetro(s) de entrada para a predição: '
+if all:
+    selecao = container.multiselect(str_input, options=opcoes, default=opcoes)
+    # caso o usuário marque a opção, cria um multiselect com as opções já selecionadas (parâmetro 'default')
+else:
+    selecao = container.multiselect(str_input, options=opcoes)
+    # caso contrário, cria um multiselect sem nada selecionado
 
-# Árvore
-arv = tree.DecisionTreeClassifier() #árvore de decisão
-arv.fit(pd.concat([pd.get_dummies(base[quali]), base[quant]], axis=1), base[alvo]) #cria a árvore
+# regressão linear múltipla
+rl = LinearRegression()
+indep = df[selecao].values.reshape(-1, len(selecao)) #variável independente
+dep = ALVO.values.flatten()
+rl.fit(indep, dep)
 
-res = arv.predict([vals['Valor do aluguel (R$)']])
-res
+if selecao:
+    st.subheader('Insira os dados abaixo')
+    x = [st.number_input(elem, min_value=0) for elem in selecao] # obtém os valores para a variável independente 
+
+    x_arr = np.array(x).reshape(-1, len(selecao)) # converte para o formato adequado
+    y_pred = rl.predict(x_arr) # calcula a predição
+    st.write(f"Preço estimado do aluguel: R$ {float(y_pred):.2f}")
