@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression # Regressão linear
 
 
-trad = {
+trad_dict = {
     'city': 'Cidade',
     'area': 'Área (m²)',
     'rooms': 'Nº de quartos',
@@ -21,41 +21,74 @@ trad = {
     'total (R$)': 'Total (R$)'
 }
 
-st.title('Seminário de Tópicos Especiais em Informática') 
+st.title('Seminário de Tópicos Especiais em Informática')
+st.header("Dados sobre aluguel de casas em diferentes cidades do Brasil")
 df = pd.read_csv("houses_to_rent_v2.csv")
-df.rename(columns=trad, inplace=True) # traduz os nomes das colunas para melhor visualização
-st.dataframe(df)
-st.write(df['Cidade'].value_counts())
+df.rename(columns=trad_dict, inplace=True) # traduz os nomes das colunas para melhor visualização
+df
 
-ALVO = df['Valor do aluguel (R$)']
-colunas_drop = ['Cidade', 'Permite animais', 'Mobiliado', 'Taxa de condomínio (R$)', 'Valor do aluguel (R$)', 'IPTU (R$)', 'Seguro contra incêndio (R$)', 'Total (R$)']
-df_clean = df.drop(colunas_drop, axis=1)
+# filtrando os dados quantitativos da base
+df_quant = df.drop(['Cidade', 'Permite animais', 'Mobiliado', 'Taxa de condomínio (R$)', 'Valor do aluguel (R$)', 'IPTU (R$)', 'Seguro contra incêndio (R$)', 'Total (R$)'], axis=1)
+
+# apresentar estatísticas da base de dados
+fig, ax = plt.subplots()
+df['Cidade'].value_counts().sort_values().plot(ax=ax, kind='barh')
+ax.set_ylabel('Cidade')
+ax.set_xlabel('Casas para alugar')
+st.pyplot(fig)
+
+cidades = df['Cidade'].unique()
+st.header("Estatísticas do aluguel em cada cidade")
+
+col_quant = [
+    ['Área (m²)', 'Nº de quartos', 'Nº de banheiros'],
+    ['Vagas de estacionamento', 'Andar', 'Valor do aluguel (R$)'],
+    ['IPTU (R$)', 'Taxa de condomínio (R$)', 'Seguro contra incêndio (R$)']
+]
+col_quali = ['Cidade', 'Permite animais', 'Mobiliado']
+
+for cidade in cidades:
+    df_cidade = df[df['Cidade'] == cidade]
+
+
+# df_cidade_quant = df_cidade[np.array(col_quant).flat]
+# df_cidade_quali = df_cidade[np.array(col_quali).flat]
+
+st.subheader("Valores médios")
+fig, ax = plt.subplots(nrows=3, ncols=3)
+for i, row in enumerate(col_quant):
+    for j, elem in enumerate(row):
+        # st.write(i, j)
+        st.write(df_cidade[elem])
+        ax[i][j].plot(elem, df_cidade[elem])
+st.pyplot(fig)
+# st.markdown(f"{elem}: **{df_cidade_quant[elem].mean():.2f}**")
 
 # verificar as correlações entre as variáveis
-for col in df_clean.columns:
-    st.markdown(f"Correlação de **{col}** com o valor do aluguel: **{df_clean[col].corr(ALVO):.4f}**")
+st.header("Correlação entre as variáveis quantitativas e o valor do aluguel")
+for col in df_quant.columns:
+    corr = df_quant[col].corr(df['Valor do aluguel (R$)'])
+    st.markdown(f"Correlação de **{col}** com o valor do aluguel: **{corr:.4f}**")
 
+# escolha dos parâmetros de entrada para a predição
 st.header("Predição utilizando Regressão Linear Múltipla")
-opcoes = list(df_clean.columns)
+opcoes = list(df_quant.columns)
 container = st.container()
-todos = st.checkbox('Selecionar todos')
-str_input = 'Escolha o(s) parâmetro(s) de entrada para a predição: '
-if todos:
-    selecao = container.multiselect(str_input, options=opcoes, default=opcoes)
-    # caso o usuário marque a opção, cria um multiselect com as opções já selecionadas (parâmetro 'default')
+if st.checkbox('Selecionar todos'):
+    selecao = container.multiselect('Escolha o(s) parâmetro(s) de entrada para a predição: ', options=opcoes, default=opcoes)
 else:
-    selecao = container.multiselect(str_input, options=opcoes)
-    # caso contrário, cria um multiselect sem nada selecionado
-  
+    selecao = container.multiselect('Escolha o(s) parâmetro(s) de entrada para a predição: ', options=opcoes)
+
 # regressão linear múltipla
 rl = LinearRegression()
-indep = df[selecao].values.reshape(-1, len(selecao)) # variável independente
-dep = ALVO.values.flatten() # variável dependente
-rl.fit(indep, dep)
 
 if selecao:
+    indep = df[selecao].values.reshape(-1, len(selecao)) # variável independente
+    dep = df['Valor do aluguel (R$)'].values.flatten() # variável dependente
+    rl.fit(indep, dep)
+
     st.subheader('Insira os dados abaixo')
-    x = [st.number_input(elem, min_value=0) for elem in selecao] # obtém os valores para a variável independente 
+    x = [st.number_input(elem, min_value=0) for elem in selecao] # obtém os valores de entrada para a predição 
 
     x_arr = np.array(x).reshape(-1, len(selecao)) # converte para o formato adequado
     y_pred = rl.predict(x_arr) # calcula a predição
