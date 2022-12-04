@@ -40,29 +40,17 @@ st.pyplot(fig)
 cidades = df['Cidade'].unique()
 st.header("Estatísticas do aluguel em cada cidade")
 
-col_quant = [
-    ['Área (m²)', 'Nº de quartos', 'Nº de banheiros'],
-    ['Vagas de estacionamento', 'Andar', 'Valor do aluguel (R$)'],
-    ['IPTU (R$)', 'Taxa de condomínio (R$)', 'Seguro contra incêndio (R$)']
-]
+col_quant = ['Área (m²)', 'Nº de quartos', 'Nº de banheiros', 'Vagas de estacionamento', 'Andar', 'Valor do aluguel (R$)', 'IPTU (R$)', 'Taxa de condomínio (R$)', 'Seguro contra incêndio (R$)']
 col_quali = ['Cidade', 'Permite animais', 'Mobiliado']
 
-for cidade in cidades:
-    df_cidade = df[df['Cidade'] == cidade]
-
-
-# df_cidade_quant = df_cidade[np.array(col_quant).flat]
-# df_cidade_quali = df_cidade[np.array(col_quali).flat]
-
 st.subheader("Valores médios")
-fig, ax = plt.subplots(nrows=3, ncols=3)
-for i, row in enumerate(col_quant):
+fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(25,25))
+for i, row in enumerate(np.array(col_quant[:6]).reshape(3, -1)):
     for j, elem in enumerate(row):
-        # st.write(i, j)
-        st.write(df_cidade[elem])
-        ax[i][j].plot(elem, df_cidade[elem])
+        media_col = df.groupby('Cidade')[elem].mean()
+        media_col.sort_index().plot.barh(ax=ax[i][j])
+        ax[i][j].set_title(elem)
 st.pyplot(fig)
-# st.markdown(f"{elem}: **{df_cidade_quant[elem].mean():.2f}**")
 
 # verificar as correlações entre as variáveis
 st.header("Correlação entre as variáveis quantitativas e o valor do aluguel")
