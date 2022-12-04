@@ -22,7 +22,7 @@ trad_dict = {
 }
 
 st.title('Seminário de Tópicos Especiais em Informática')
-st.header("Dados sobre aluguel de casas em diferentes cidades do Brasil")
+st.header("Dados sobre aluguel de imóveis em diferentes cidades do Brasil")
 df = pd.read_csv("houses_to_rent_v2.csv")
 df.rename(columns=trad_dict, inplace=True) # traduz os nomes das colunas para melhor visualização
 df
@@ -44,7 +44,7 @@ col_quant = ['Área (m²)', 'Nº de quartos', 'Nº de banheiros', 'Vagas de esta
 col_quali = ['Cidade', 'Permite animais', 'Mobiliado']
 
 st.subheader("Valores médios")
-fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(25,25))
+fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(16,16))
 for i, row in enumerate(np.array(col_quant[:6]).reshape(3, -1)):
     for j, elem in enumerate(row):
         media_col = df.groupby('Cidade')[elem].mean()
