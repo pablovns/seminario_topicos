@@ -27,35 +27,32 @@ df = pd.read_csv("houses_to_rent_v2.csv")
 df.rename(columns=trad_dict, inplace=True) # traduz os nomes das colunas para melhor visualização
 df
 
-# filtrando os dados quantitativos da base
+# cria um df com apenas as colunas com dados quantitativos 
 df_quant = df.drop(['Cidade', 'Permite animais', 'Mobiliado', 'Taxa de condomínio (R$)', 'Valor do aluguel (R$)', 'IPTU (R$)', 'Seguro contra incêndio (R$)', 'Total (R$)'], axis=1)
 
 # apresentar estatísticas da base de dados
+# plota a quantidade de casas em cada uma das 5 cidades
 fig, ax = plt.subplots()
 df['Cidade'].value_counts().sort_values().plot(ax=ax, kind='barh')
 ax.set_ylabel('Cidade')
 ax.set_xlabel('Casas para alugar')
 st.pyplot(fig)
 
-cidades = df['Cidade'].unique()
 st.header("Estatísticas do aluguel em cada cidade")
-
 col_quant = ['Área (m²)', 'Nº de quartos', 'Nº de banheiros', 'Vagas de estacionamento', 'Andar', 'Valor do aluguel (R$)', 'IPTU (R$)', 'Taxa de condomínio (R$)', 'Seguro contra incêndio (R$)']
-col_quali = ['Cidade', 'Permite animais', 'Mobiliado']
 
-st.subheader("Valores médios")
-fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(16,16))
-for i, row in enumerate(np.array(col_quant[:6]).reshape(3, -1)):
-    for j, elem in enumerate(row):
-        media_col = df.groupby('Cidade')[elem].mean()
-        media_col.sort_index().plot.barh(ax=ax[i][j])
+fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(16,16)) # cria uma figura com 3 linhas e 2 colunas (6 gráficos no total)
+for i, row in enumerate(np.array(col_quant[:6]).reshape(3, 2)): # redimensiona o array para as mesmas dimensões da figura
+    for j, elem in enumerate(row): # percorre cada coluna da linha atualmente sendo percorrida pelo for acima
+        media_col = df.groupby('Cidade')[elem].mean() # calcula e agrupa a média de cada cidade
+        media_col.sort_index().plot.barh(ax=ax[i][j]) # plota a média calculada no eixo ax na linha i e na coluna j
         ax[i][j].set_title(elem)
 st.pyplot(fig)
 
 # verificar as correlações entre as variáveis
 st.header("Correlação entre as variáveis quantitativas e o valor do aluguel")
 for col in df_quant.columns:
-    corr = df_quant[col].corr(df['Valor do aluguel (R$)'])
+    corr = df_quant[col].corr(df['Valor do aluguel (R$)']) # calcula a correlação entre a coluna e o valor do aluguel
     st.markdown(f"Correlação de **{col}** com o valor do aluguel: **{corr:.4f}**")
 
 # escolha dos parâmetros de entrada para a predição
@@ -76,7 +73,7 @@ if selecao:
     rl.fit(indep, dep)
 
     st.subheader('Insira os dados abaixo')
-    x = [st.number_input(elem, min_value=0) for elem in selecao] # obtém os valores de entrada para a predição 
+    x = [st.number_input(elem, min_value=0) for elem in selecao] # obtém do usuário os valores de entrada para a predição 
 
     x_arr = np.array(x).reshape(-1, len(selecao)) # converte para o formato adequado
     y_pred = rl.predict(x_arr) # calcula a predição
